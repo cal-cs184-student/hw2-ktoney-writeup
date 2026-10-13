@@ -48,7 +48,9 @@
 		-->
 
 		<h2>Overview</h2>
-		Give a high-level overview of what you implemented in this homework. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the homework.
+		In this homework I implemented de Casteljau's algorithm for subdivision in both 2D and 3D in order to create a Bezier curve out of points using repeated linear interpolation.
+		In the latter half we also implemented mesh functions, where we began by implementing Area-weighted normal shading. I thought this was interesting because its a clever way to utilize cross products in order to find normals as we iterate through the adjacent faces nicely.
+		Then we implemented edge splitting and flipping, which honestly required a lot tedious pointer manipulation and diagraming. Though, I thought it was interesting to learn that these simple operations can be used as building blocks in order to upsample our meshes in part 6, and that a lot of thought can go into pre-processing meshes to get a proper upsample. 
 
 		<h2>Section I: Bezier Curves and Surfaces</h2>
 
@@ -70,7 +72,6 @@
 				<td><img src="assets/task1/6.png" alt="Part 1 result 6" style="width: 100%; height: auto;"/></td>
 			  </tr>
 			</table>
-		</div>
 
 		<h4>Example 2</h4>
 		Here's another example of running de Casteljau’s algorithm on 6 slightly different control points, tested on 3 different values of t. As we can see, changing values for t yields 3 different points on the final Bezier Curve. 
@@ -137,24 +138,105 @@
 		</table>
 
 		<h3>Part 5: Edge split</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		I implemented edge splitting by grabbing the adjacent faces, halfedges, and vertices just like in edge flipping. However we have to genereate two new faces and 6 new half edges and 3 edges to accomodate for the split unlike in flip. We also have to create a new vertex positioned between the two vertices of edge by calculating their midpoint. I think the trickiest part of this was again just managing all the pointers, but drawing a proper diagram helps. 
+
+		<h4>Example</h4>
+		<table style="width: 100%; table-layout: fixed; text-align: center; border-collapse: collapse;">
+		  <tr>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task5/teapot.png" alt="Teapot before edge operations" style="width: 100%; height: auto;"/>
+					<figcaption>Teapot</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task5/teapot_splits.png" alt="Teapot after edge splitting" style="width: 100%; height: auto;"/>
+					<figcaption>Teapot with edge splits</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task5/teapot_flips_and_splits.png" alt="Teapot after edge splitting and flipping" style="width: 100%; height: auto;"/>
+					<figcaption>Teapot with edge splits and flips</figcaption>
+				</figure>
+			</td>
+		  </tr>
+		</table>
 
 		<h3>Part 6: Loop subdivision for mesh upsampling</h3>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		In order to implement loop division, we first iterate through every vertex in the current mesh using VertexIter. Then we calculate u based on the weights mentioned in lecture for old vertices, which is 3/16 if degree 3 and 3/(8n) otherwise, where 1-nu is the weight of the original vertex's position and u is the weight of its original neighbor's position. Then we take a weighted average of these vertices based on these weights, and store v's newPosition in a member variable before we update the whole mesh. 
+		We then iterate through all the edges of the original mesh, and calculate the new position of the newly genereated midpoint/vertex with a weight of 3/8 for vertices on the edge and 1/8 for vertices opposite of the edge, and store this value an edge member variable for later use.
+		We then iterate through all the original edges again and split them, and set the positions of the new midpoints/vertices to the values we just calculated earlier.
+		We then iterate threw every newly created edge and flip them only if they connectt and old and new vertex.
+		Finally we finish by updating the positions of every vertex. 
 
-		<h2>(Optional) Section III: Potential Extra Credit - Art Competition: Model something Creative</h2>
-		Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+		I think a major thing that helped implement this function was making sure to use the member variables for new positions in vertices and edges, as they help make sure to not overcomplicate code by overwriting old values of vertices or making it difficult to distinguish new vertices and edges from old ones.
 
-		<h2>Additional Notes (please remove)</h2>
-		<ul>
-			<li>You can also add code if you'd like as so: <code>code code code</code></li>
-			<li>If you'd like to add math equations, 
-				<ul>
-					<li>You can write inline equations like so: \( a^2 + b^2 = c^2 \)</li>
-					<li>You can write display equations like so: \[ a^2 + b^2 = c^2 \]</li>
-				</ul>
-			</li>
-		</ul>
+		<br>
+		
+		As we can see in the example below, subdividing a cube becomes very lumpy and uneven, due to its sharp edges. However, if we add a presplit on each face, this smoothes out the subdivision, make it subdivide more evenly while retaining a cuboid shape, just smoothed out. Edges become much more of an even corner. This is because it makes the triangles more even and smaller, resulting in a less uneven and "random" subdivision over all as we can plan how we process our subdivision.
+		<table style="width: 100%; table-layout: fixed; text-align: center; border-collapse: collapse;">
+		  <tr>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/no_split.png" alt="No split, no subdivision" style="width: 100%; height: auto;"/>
+					<figcaption>No split - No subdivision</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/no_split1.png" alt="No split, 2 subdivisions" style="width: 100%; height: auto;"/>
+					<figcaption>No split - 2 subdivisions</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/no_split2.png" alt="No split, multiple subdivisions" style="width: 100%; height: auto;"/>
+					<figcaption>No split - Multiple subdivisions</figcaption>
+				</figure>
+			</td>
+		  </tr>
+		  <tr>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/split.png" alt="Split, no subdivision" style="width: 100%; height: auto;"/>
+					<figcaption>Split - No subdivision</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/split1.png" alt="Split, 2 subdivisions" style="width: 100%; height: auto;"/>
+					<figcaption>Split - 2 subdivisions</figcaption>
+				</figure>
+			</td>
+			<td>
+				<figure style="margin: 8px;">
+					<img src="assets/task6/split2.png" alt="Split, multiple subdivisions" style="width: 100%; height: auto;"/>
+					<figcaption>Split - Multiple subdivisions</figcaption>
+				</figure>
+			</td>
+		  </tr>
+		</table>
+
+		<table style="width: 100%; table-layout: fixed; text-align: center; border-collapse: collapse;">
+			  <tr>
+				<td>
+					<figure style="margin: 8px;">
+						<img src="assets/task6/icos.png" alt="Icosphere before subdivision" style="width: 100%; height: auto;"/>
+						<figcaption>Icosphere before subdivision</figcaption>
+					</figure>
+				</td>
+				<td>
+					<figure style="margin: 8px;">
+						<img src="assets/task6/icos1.png" alt="Icosphere after subdivision" style="width: 100%; height: auto;"/>
+						<figcaption>Icosphere after subdivision</figcaption>
+					</figure>
+				</td>
+			  </tr>
+			</table>
 		</div>
+
+		
 	</body>
 </html>
